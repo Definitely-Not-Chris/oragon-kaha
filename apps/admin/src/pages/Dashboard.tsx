@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, DollarSign, Users, ShoppingBag } from "lucide-react";
+import { DollarSign, ShoppingBag } from "lucide-react";
 import ClientDashboard from "./ClientDashboard";
 
 export default function Dashboard() {

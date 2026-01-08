@@ -23,7 +23,7 @@ interface CartContextType {
     taxRate: number;
     serviceCharge: number;
     serviceChargeRate: number;
-    completeSale: (method: 'CASH' | 'CARD' | 'QR') => Promise<Sale | null>;
+    completeSale: (method: 'CASH' | 'CARD' | 'QR', details?: { amountPaid?: number, changeAmount?: number, referenceNumber?: string }) => Promise<Sale | null>;
 
     // Customer Management
     selectedCustomer: Customer | null;
@@ -253,7 +253,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [items, discount, settings]);
 
-    const completeSale = async (method: 'CASH' | 'CARD' | 'QR'): Promise<Sale | null> => {
+    const completeSale = async (method: 'CASH' | 'CARD' | 'QR', details?: { amountPaid?: number, changeAmount?: number, referenceNumber?: string }): Promise<Sale | null> => {
         if (items.length === 0) return null;
 
         // Generate Invoice Number
@@ -296,6 +296,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             invoice_number: invoiceNumber,
             discount_info: discountDetails || undefined, discount_name: discount?.name,
             discount_amount: calculation.discountAmount > 0 ? calculation.discountAmount : undefined,
+
+            // Payment Details
+            amount_paid: details?.amountPaid,
+            change_amount: details?.changeAmount,
+            reference_number: details?.referenceNumber,
         };
 
         try {
@@ -376,11 +381,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 await db.cart_items.clear();
             });
 
-            console.log("Sale Completed");
+
             // Clear cart WITHOUT restoring stock (as it's sold)
             // await clearCart(false); // Already done in transaction
 
-            console.log("Triggering Success Toast");
+
             showToast('Sale Completed Successfully!', 'success');
             return sale;
         } catch (error) {

@@ -5,7 +5,7 @@ import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth } from 
 import { Calendar } from '../ui/calendar'; // Assuming shadcn Calendar exists
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'; // Assuming shadcn
 import { cn } from '../../lib/utils';
-import { ReportType } from '@vibepos/shared-types';
+
 
 export interface ReportParams {
     type: string; // ReportType enum string
@@ -117,7 +117,7 @@ export const ReportGeneratorParams = ({ onGenerate, isGenerating }: Props) => {
                                     )}
                                 </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent className="w-auto p-0 bg-white z-50 shadow-xl" align="start">
                                 <Calendar
                                     initialFocus
                                     mode="range"

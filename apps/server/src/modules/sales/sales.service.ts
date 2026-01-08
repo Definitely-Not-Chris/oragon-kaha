@@ -9,9 +9,18 @@ export class SalesService {
         return { status: 'Sale created' };
     }
 
-    async findAll(organizationId: string) {
+    async findAll(organizationId: string, from?: string, to?: string) {
+        const where: any = { organizationId };
+
+        if (from) {
+            where.timestamp = {
+                gte: new Date(from),
+                ...(to ? { lte: new Date(to) } : {})
+            };
+        }
+
         return this.prisma.sale.findMany({
-            where: { organizationId },
+            where,
             include: {
                 items: true,
                 terminal: true

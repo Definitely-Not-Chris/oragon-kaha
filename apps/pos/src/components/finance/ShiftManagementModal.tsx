@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, DollarSign, LogOut, FileText, AlertTriangle } from 'lucide-react';
+import { X, DollarSign, LogOut, FileText, AlertTriangle, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../../db';
 import { useShift } from '../../contexts/ShiftContext';
 import { useCurrency } from '../../lib/useCurrency';
 
@@ -35,6 +37,41 @@ export const ShiftManagementModal = ({ isOpen, onClose }: ShiftManagementModalPr
             }
         }
     }, [isOpen, currentShift]);
+
+    // Transaction Summary
+    const summary = useLiveQuery(async () => {
+        if (!currentShift) return null;
+
+        const allSales = await db.sales
+            .where('timestamp')
+            .above(currentShift.start_time)
+            .and(s => s.status === 'COMPLETED')
+            .toArray();
+
+        // Calculate Cash vs Non-Cash
+        const cashSales = allSales
+            .filter(s => s.payment_method === 'CASH')
+            .reduce((sum, s) => sum + s.total_amount, 0);
+
+        const nonCashSales = allSales
+            .filter(s => s.payment_method !== 'CASH')
+            .reduce((sum, s) => sum + s.total_amount, 0);
+
+        const transactions = await db.cash_transactions
+            .where('shift_id')
+            .equals(currentShift!.id as string)
+            .toArray();
+
+        const payIns = transactions
+            .filter(t => t.type === 'PAY_IN')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const payOuts = transactions
+            .filter(t => t.type === 'PAY_OUT' || t.type === 'DROP')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        return { cashSales, nonCashSales, payIns, payOuts, totalTransactions: allSales.length };
+    }, [currentShift]);
 
     const handleOpenShift = async () => {
         const val = parseFloat(floatAmount);
@@ -133,6 +170,39 @@ export const ShiftManagementModal = ({ isOpen, onClose }: ShiftManagementModalPr
                                         <p className="text-xl font-bold text-gray-700 mt-1">{formatPrice(currentShift.opening_float || 0)}</p>
                                     </div>
                                 </div>
+
+                                {summary && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <TrendingUp size={14} className="text-green-600" />
+                                                <span className="text-xs font-bold text-gray-500 uppercase">Cash Sales</span>
+                                            </div>
+                                            <p className="font-mono font-bold text-gray-900">{formatPrice(summary.cashSales)}</p>
+                                        </div>
+                                        <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <CreditCard size={14} className="text-blue-600" />
+                                                <span className="text-xs font-bold text-gray-500 uppercase">Digital / Card</span>
+                                            </div>
+                                            <p className="font-mono font-bold text-gray-900">{formatPrice(summary.nonCashSales)}</p>
+                                        </div>
+                                        <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <TrendingUp size={14} className="text-emerald-600" />
+                                                <span className="text-xs font-bold text-gray-500 uppercase">Pay Ins</span>
+                                            </div>
+                                            <p className="font-mono font-bold text-emerald-700">+{formatPrice(summary.payIns)}</p>
+                                        </div>
+                                        <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <TrendingDown size={14} className="text-red-600" />
+                                                <span className="text-xs font-bold text-gray-500 uppercase">Expenses</span>
+                                            </div>
+                                            <p className="font-mono font-bold text-red-700">-{formatPrice(summary.payOuts)}</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <button

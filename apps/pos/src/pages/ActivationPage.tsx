@@ -62,6 +62,10 @@ export default function ActivationPage() {
             localStorage.setItem("vibepos_license_key", license.key);
             localStorage.setItem("vibepos_license_valid_until", license.validUntil || "");
 
+            if (license.organization) {
+                localStorage.setItem("vibepos_org_name", license.organization.name);
+            }
+
             // 3. Robust Terminal Validation (Server-Side Check)
             // Always fetch existing terminals first to validate the current one
             const existingTerminals = await api.terminals.list(license.organizationId);
@@ -110,7 +114,7 @@ export default function ActivationPage() {
         const terminal = await api.terminals.register(organizationId);
         localStorage.setItem("vibepos_terminal_id", terminal.terminal_id);
         localStorage.setItem("vibepos_terminal_name", terminal.name);
-        console.log("Terminal Registered:", terminal);
+
     };
 
     const handleRegisterClick = () => {

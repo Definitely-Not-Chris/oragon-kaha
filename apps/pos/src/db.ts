@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import type { RetailProduct, ServiceProduct, Sale, StockMovement, StockAudit, User, Discount, Customer, WorkShift, CashTransaction, AppSettings, ReportLog } from '@vibepos/shared-types';
+import type { RetailProduct, ServiceProduct, Sale, StockMovement, StockAudit, User, Discount, Customer, WorkShift, CashTransaction, AppSettings, ReportLog, AuditLog } from '@vibepos/shared-types';
 
 export type LocalProduct = RetailProduct | ServiceProduct;
 
@@ -37,12 +37,13 @@ export class VibePOSDatabase extends Dexie {
     settings!: Table<AppSettings>;
     report_logs!: Table<ReportLog>;
     sync_queue!: Table<SyncQueueItem>;
+    audit_logs!: Table<AuditLog>;
 
     constructor() {
         super('VibePOS_Live_v1');
 
         // Squashed Schema for Clean Start
-        this.version(1).stores({
+        this.version(2).stores({
             products: 'id, type, category, name, stock_level, is_composite',
             sales: 'id, invoice_number, status, timestamp, payment_method, cashier_id, synced',
             stock_movements: 'id, product_id, timestamp, type, synced',
@@ -55,7 +56,8 @@ export class VibePOSDatabase extends Dexie {
             settings: 'id',
             report_logs: 'id, type, generated_at',
             cart_items: 'product_id',
-            sync_queue: '++id, status, created_at, retry_count'
+            sync_queue: '++id, status, created_at, retry_count',
+            audit_logs: 'id, action, timestamp, synced'
         });
 
         this.on('populate', () => {

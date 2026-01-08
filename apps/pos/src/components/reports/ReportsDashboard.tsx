@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, History, BarChart2 } from 'lucide-react';
+import { History, BarChart2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ReportGeneratorParams, ReportParams } from './ReportGeneratorParams';
 import { ReportResultView } from './ReportResultView';

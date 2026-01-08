@@ -92,6 +92,11 @@ export const SaleSchema = z.object({
     }).optional(),
     discount_name: z.string().optional(),
     discount_amount: z.number().min(0).optional(),
+
+    // Payment Details
+    amount_paid: z.number().min(0).optional(),
+    change_amount: z.number().min(0).optional(),
+    reference_number: z.string().optional(),
 });
 
 export type SaleItem = z.infer<typeof SaleItemSchema>;
@@ -231,6 +236,32 @@ export const DiscountSchema = z.object({
 
 export type Discount = z.infer<typeof DiscountSchema>;
 
+// Audit Logging
+export const AuditActionType = z.enum([
+    'WIPE_DATA',
+    'LOGIN',
+    'LOGOUT',
+    'VOID_SALE',
+    'DISCOUNT_OVERRIDE',
+    'REFUND_SALE',
+    'OPEN_SHIFT',
+    'CLOSE_SHIFT',
+    'SETTINGS_CHANGE'
+]);
+
+export const AuditLogSchema = z.object({
+    id: z.string().uuid().optional(),
+    action: AuditActionType,
+    details: z.string().optional(),
+    user_id: z.string().optional(),
+    user_name: z.string().optional(),
+    terminal_id: z.string().optional(),
+    timestamp: z.date().default(() => new Date()),
+    synced: z.boolean().default(false),
+});
+
+export type AuditLog = z.infer<typeof AuditLogSchema>;
+
 // Sync Engine
 
 // Licensing & Security
@@ -351,7 +382,7 @@ export type WorkShift = z.infer<typeof WorkShiftSchema>;
 // App Settings (Moved here to resolve circular dependency with AccessPermission)
 export const AppSettingsSchema = z.object({
     id: z.string().default('device_settings'),
-    enable_shifts: z.boolean().default(true),
+    enable_shifts: z.boolean().default(false),
     enable_tax_automation: z.boolean().default(false),
 
     // Tax & Fees
@@ -405,6 +436,7 @@ export const SyncPacketSchema = z.object({
     customers: z.array(CustomerSchema).optional(),
     shifts: z.array(WorkShiftSchema).optional(),
     stock_movements: z.array(StockMovementSchema).optional(),
+    audit_logs: z.array(AuditLogSchema).optional(),
 });
 
 export type SyncPacket = z.infer<typeof SyncPacketSchema>;

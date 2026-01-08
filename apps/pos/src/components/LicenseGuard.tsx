@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { AlertCircle, WifiOff } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 

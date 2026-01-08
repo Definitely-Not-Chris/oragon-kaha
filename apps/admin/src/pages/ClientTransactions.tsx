@@ -8,12 +8,15 @@ import { Loader2, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 
 import { OrganizationSelector } from "@/components/OrganizationSelector";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
+import { DateRange } from "react-day-picker";
 
 export default function ClientTransactions() {
     const { user } = useAuth();
     const [sales, setSales] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
     // Effect for Store Owners (auto-select their org)
     useEffect(() => {
@@ -22,19 +25,14 @@ export default function ClientTransactions() {
         }
     }, [user?.organizationId]);
 
-    // Effect to load sales when org is selected
-    useEffect(() => {
-        if (selectedOrgId) {
-            loadSales(selectedOrgId);
-        } else {
-            setSales([]);
-        }
-    }, [selectedOrgId]);
-
     const loadSales = async (orgId: string) => {
         setLoading(true);
         try {
-            const data = await api.getSales(orgId);
+            const data = await api.getSales(
+                orgId,
+                dateRange?.from?.toISOString(),
+                dateRange?.to?.toISOString()
+            );
             setSales(data);
         } catch (error) {
             console.error("Failed to load sales", error);
@@ -43,6 +41,15 @@ export default function ClientTransactions() {
         }
     };
 
+    // Effect to load sales when org is selected OR date range changes
+    useEffect(() => {
+        if (selectedOrgId) {
+            loadSales(selectedOrgId);
+        } else {
+            setSales([]);
+        }
+    }, [selectedOrgId, dateRange]);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -50,16 +57,22 @@ export default function ClientTransactions() {
                     <h1 className="text-3xl font-bold tracking-tight text-vibepos-dark">Transactions</h1>
                     <p className="text-muted-foreground">Real-time sales data from your terminals.</p>
                 </div>
-                {/* Show Selector ONLY if user has no Organization ID (Super Admin) */}
-                {!user?.organizationId && (
-                    <div className="w-full md:w-auto">
-                        <OrganizationSelector
-                            value={selectedOrgId}
-                            onSelect={(id: string) => setSelectedOrgId(id)}
-                            className="w-[250px]"
-                        />
-                    </div>
-                )}
+                <div className="flex gap-2">
+                    <DateRangePicker
+                        date={dateRange}
+                        setDate={setDateRange}
+                    />
+                    {/* Show Selector ONLY if user has no Organization ID (Super Admin) */}
+                    {!user?.organizationId && (
+                        <div className="w-full md:w-auto">
+                            <OrganizationSelector
+                                value={selectedOrgId}
+                                onSelect={(id: string) => setSelectedOrgId(id)}
+                                className="w-[250px]"
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <Card>

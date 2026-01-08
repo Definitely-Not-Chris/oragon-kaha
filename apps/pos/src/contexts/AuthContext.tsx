@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 full_name: 'Administrator'
             });
             setHasPin(true);
-            console.log('Default admin seeded.');
+
         } catch (e) {
             console.error('Failed to seed admin', e);
         }

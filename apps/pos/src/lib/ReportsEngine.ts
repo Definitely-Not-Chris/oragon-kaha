@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { Sale, ReportLog } from '@vibepos/shared-types';
+import { Sale } from '@vibepos/shared-types';
 
 export interface ReportDateRange {
     start: Date;

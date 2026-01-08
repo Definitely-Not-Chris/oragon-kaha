@@ -99,7 +99,12 @@ export const api = {
     getTerminals: (organizationId: string) => fetchJson<any[]>(`/terminals?organization_id=${organizationId}`),
 
     // Sales
-    getSales: (organizationId: string) => fetchJson<any[]>(`/sales?organization_id=${organizationId}`),
+    getSales: (organizationId: string, from?: string, to?: string) => {
+        const params = new URLSearchParams({ organization_id: organizationId });
+        if (from) params.append('from', from);
+        if (to) params.append('to', to);
+        return fetchJson<any[]>(`/sales?${params.toString()}`);
+    },
 
     // Sync Logs
     getSyncLogs: () => fetchJson<string[]>('/sync/logs'),

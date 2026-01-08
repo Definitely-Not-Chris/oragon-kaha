@@ -1,4 +1,4 @@
-import { User, CreditCard, Banknote, QrCode, ArrowLeft, Receipt } from 'lucide-react';
+import { User, Banknote, QrCode, ArrowLeft, Receipt } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '../../lib/useCart';
 import { useToast } from '../ui/Toast';
@@ -21,8 +21,9 @@ interface CheckoutViewProps {
 export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
     const { items, subtotal, tax, taxName, taxRate, serviceCharge, serviceChargeRate, total, completeSale, selectedCustomer, selectCustomer, discount, discountAmount, applyDiscount } = useCart();
     const { formatPrice, symbol } = useCurrency();
-    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'QR'>('CASH');
+    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'QR'>('CASH');
     const [cashReceived, setCashReceived] = useState<string>('');
+    const [referenceNumber, setReferenceNumber] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSelectingCustomer, setIsSelectingCustomer] = useState(false);
     const { showToast } = useToast();
@@ -54,27 +55,45 @@ export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
         }
     };
 
+    const amountInputStart = parseFloat(cashReceived);
     const isPaymentValid =
-        paymentMethod !== 'CASH' || ((parseFloat(cashReceived) || 0) >= total);
+        (paymentMethod === 'CASH' && (amountInputStart || 0) >= total) ||
+        (paymentMethod !== 'CASH' && ((amountInputStart || 0) >= total || (amountInputStart === 0 && !cashReceived) /* Allow empty for exact? No, require input */));
+
+    // Better validation:
+    // If CASH: Amount >= Total
+    // If Other: Reference Required AND Amount >= Total (if entered) or default to Total?
+    // Let's default to Total if empty, but user wants to record.
+    // Let's require input for consistency if they want to record "how much customer pay".
+    // So let's initialize cashReceived to total string when switching methods?
+    // Or just require Amount >= Total always.
+
+    const amountVal = parseFloat(cashReceived) || 0;
+    const isReady = amountVal >= total && (paymentMethod === 'CASH' || referenceNumber.trim().length > 0);
 
     const handlePayment = async () => {
-        // Redundant check can be kept for safety, but button handles primary logic
-        if (paymentMethod === 'CASH') {
-            const received = parseFloat(cashReceived);
-            if (isNaN(received) || received < total) {
-                showToast(`Insufficient cash. Due: $${total.toFixed(2)}`, 'error');
-                return;
-            }
+        const received = parseFloat(cashReceived) || total; // Default to total if empty/NaN? 
+        // Actually, validation prevents submission if invalid.
+
+        if (received < total) {
+            showToast(`Insufficient payment. Due: $${total.toFixed(2)}`, 'error');
+            return;
         }
 
         setIsProcessing(true);
-        const sale = await completeSale(paymentMethod);
+        const change = Math.max(0, received - total);
+
+        const details = {
+            amountPaid: received,
+            changeAmount: change,
+            referenceNumber: paymentMethod !== 'CASH' ? referenceNumber : undefined
+        };
+
+        const sale = await completeSale(paymentMethod, details);
         setIsProcessing(false);
 
         if (sale) {
             setCompletedSale(sale);
-        } else {
-            // Error handling handled in completeSale
         }
     };
 
@@ -149,14 +168,13 @@ export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
                 </button>
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Payment Terminal</h2>
-                    <p className="text-sm text-gray-400">Transaction #{new Date().getTime().toString().slice(-6)}</p>
                 </div>
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
                 {/* LEFT COLUMN: Payment Interaction (65%) */}
-                <div className="flex-[2] p-8 overflow-y-auto border-r border-gray-100 space-y-8">
+                <div className="flex-[2] p-4 md:p-6 lg:p-8 overflow-y-auto border-r border-gray-100 space-y-6 md:space-y-8">
 
                     {/* 1. Customer & Discount Group */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,12 +274,20 @@ export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
                         <div className="flex p-1 bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
                             {[
                                 { id: 'CASH', icon: Banknote, label: 'Cash Payment' },
-                                { id: 'CARD', icon: CreditCard, label: 'Card Terminal' },
                                 { id: 'QR', icon: QrCode, label: 'QR / E-Wallet' },
                             ].map((m) => (
                                 <button
                                     key={m.id}
-                                    onClick={() => setPaymentMethod(m.id as any)}
+                                    onClick={() => {
+                                        setPaymentMethod(m.id as any);
+                                        // Reset or Pre-fill
+                                        if (m.id !== 'CASH') {
+                                            setCashReceived(total.toFixed(2));
+                                            setReferenceNumber('');
+                                        } else {
+                                            setCashReceived('');
+                                        }
+                                    }}
                                     className={`
                                         flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 rounded-lg transition-all
                                         ${paymentMethod === m.id
@@ -329,25 +355,55 @@ export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
                                 </div>
                             )}
 
-                            {paymentMethod === 'CARD' && (
-                                <div className="text-center animate-in zoom-in duration-300">
-                                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl shadow-blue-200">
-                                        <CreditCard size={48} />
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Ready for Card</h3>
-                                    <p className="text-gray-500">Insert or Tap on Terminal</p>
-                                </div>
-                            )}
-
                             {paymentMethod === 'QR' && (
-                                <div className="text-center animate-in zoom-in duration-300">
-                                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 inline-block mb-6 relative group cursor-pointer hover:border-vibepos-primary transition-colors">
-                                        <div className="absolute inset-0 bg-vibepos-primary/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-                                        <div className="w-48 h-48 bg-gray-900 rounded-lg opacity-10" />
-                                        <QrCode className="absolute inset-0 m-auto text-gray-900 opacity-20" size={64} />
+                                <div className="w-full max-w-md animate-in zoom-in duration-300 space-y-4">
+                                    {/* Header Icon */}
+                                    <div className="text-center mb-6">
+                                        <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-white mx-auto mb-4 shadow-lg bg-white border border-gray-100 shadow-sm">
+                                            <QrCode size={40} className="text-gray-900" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900">E-Wallet / QR</h3>
                                     </div>
-                                    <p className="font-bold text-gray-900 text-lg">Scan Customer QR</p>
-                                    <p className="text-gray-400 text-sm">Supports GCash, Maya, PayPal</p>
+
+                                    {/* Reference Input */}
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
+                                            Reference / Trace No. <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={referenceNumber}
+                                            onChange={(e) => setReferenceNumber(e.target.value)}
+                                            className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-vibepos-primary focus:ring-4 focus:ring-blue-50 transition-all font-mono uppercase"
+                                            placeholder="GCash Ref No."
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    {/* Amount Paid Input */}
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Amount Paid</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <span className="font-bold text-gray-400">{symbol}</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                value={cashReceived}
+                                                onChange={(e) => setCashReceived(e.target.value)}
+                                                className="w-full pl-8 pr-4 py-4 font-bold bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-vibepos-primary focus:ring-4 focus:ring-blue-50 transition-all"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Change Display */}
+                                    <div className="p-4 bg-gray-100 rounded-xl flex justify-between items-center">
+                                        <span className="font-bold text-gray-500 text-sm">Change Due</span>
+                                        <span className={`font-mono font-bold text-lg ${amountVal > total ? 'text-green-600' : 'text-gray-400'}`}>
+                                            {formatPrice(Math.max(0, amountVal - total))}
+                                        </span>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -355,7 +411,7 @@ export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
                 </div>
 
                 {/* RIGHT COLUMN: Order Summary (35%) */}
-                <div className="flex-1 bg-white p-8 flex flex-col border-l border-gray-100 shadow-[-10px_0_40px_-20px_rgba(0,0,0,0.05)] z-20">
+                <div className="flex-1 bg-white p-4 md:p-6 lg:p-8 flex flex-col border-l border-gray-100 shadow-[-10px_0_40px_-20px_rgba(0,0,0,0.05)] z-20">
                     <div className="flex items-center gap-2 mb-6">
                         <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
                             <Receipt size={16} />
@@ -414,8 +470,8 @@ export const CheckoutView = ({ onBack }: CheckoutViewProps) => {
                         </div>
                         <button
                             onClick={handlePayment}
-                            disabled={!isPaymentValid || isProcessing}
-                            className={`w-full py-4 text-white text-lg font-bold rounded-xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 ${isPaymentValid ? 'bg-vibepos-primary hover:bg-blue-600 shadow-blue-200' : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                            disabled={!isReady || isProcessing}
+                            className={`w-full py-4 text-white text-lg font-bold rounded-xl shadow-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 ${isReady ? 'bg-vibepos-primary hover:bg-blue-600 shadow-blue-200' : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                                 }`}
                         >
                             <span>{isProcessing ? 'Processing...' : (isPaymentValid ? 'Finalize Payment' : 'Enter Valid Amount')}</span>

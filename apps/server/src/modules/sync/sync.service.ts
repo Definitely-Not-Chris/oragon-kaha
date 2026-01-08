@@ -139,6 +139,12 @@ export class SyncService {
                                 timestamp: new Date(sale.timestamp),
                                 discountName: sale.discount_name,
                                 discountAmount: sale.discount_amount,
+
+                                // Map Payment Details
+                                amountPaid: sale.amount_paid,
+                                changeAmount: sale.change_amount,
+                                referenceNumber: sale.reference_number,
+
                                 organization: { connect: { id: organizationId } },
                                 terminal: { connect: { id: terminal.id } },
                                 items: {
@@ -220,6 +226,32 @@ export class SyncService {
                                 stockLevel: { increment: movement.quantity_change }
                             }
                         });
+                    }
+                }
+
+                // 5. Process Audit Logs
+                if (packet.audit_logs && packet.audit_logs.length > 0) {
+                    for (const log of packet.audit_logs) {
+                        try {
+                            const exists = await prisma.auditLog.findUnique({ where: { id: log.id } });
+                            if (exists) continue;
+
+                            await prisma.auditLog.create({
+                                data: {
+                                    id: log.id,
+                                    action: log.action,
+                                    details: log.details,
+                                    userId: log.user_id,
+                                    userName: log.user_name,
+                                    terminalId: packet.terminal_id,
+                                    timestamp: new Date(log.timestamp),
+                                    synced: true,
+                                    organizationId
+                                }
+                            });
+                        } catch (e) {
+                            console.error(`Failed to sync audit log ${log.id}`, e);
+                        }
                     }
                 }
             });

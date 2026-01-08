@@ -9,7 +9,7 @@ export class SyncEngine {
 
     // Queue a packet for sync
     static async queuePacket(packet: Omit<SyncPacket, 'id' | 'created_at' | 'terminal_id' | 'organization_id'>) {
-        console.log(`[Sync] Queueing packet:`, packet);
+
         const terminalId = localStorage.getItem('vibepos_terminal_id');
         if (!terminalId) {
             console.warn("[Sync] No Terminal ID found. Cannot queue packet.");
@@ -57,7 +57,7 @@ export class SyncEngine {
                 retry_count: 0,
                 created_at: new Date()
             });
-            console.log("[Sync] Packet queued successfully in Dexie");
+
         } catch (e: any) {
             console.error("[Sync] CRITICAL: Failed to queue packet to Dexie");
             console.error("Error Name:", e.name);
@@ -126,7 +126,7 @@ export class SyncEngine {
                 const user = userStr ? JSON.parse(userStr) : null;
                 if (user?.organizationId) {
                     payload.organization_id = user.organizationId;
-                    console.log(`[Sync] Injected organization_id ${user.organizationId} into legacy packet ${item.id}`);
+
                 }
             }
 
@@ -155,7 +155,7 @@ export class SyncEngine {
 
             // Success: Remove from queue
             await db.sync_queue.delete(item.id!);
-            console.log(`[Sync] Packet ${item.id} synced successfully.`);
+
 
             // CRITICAL: Update local entities to synced=true
             const packet = item.payload as SyncPacket;
@@ -170,6 +170,10 @@ export class SyncEngine {
 
             if (packet.shifts && packet.shifts.length > 0) {
                 await Promise.all(packet.shifts.map(s => db.work_shifts.update(s.id!, { synced: true })));
+            }
+
+            if (packet.audit_logs && packet.audit_logs.length > 0) {
+                await Promise.all(packet.audit_logs.map(s => db.audit_logs.update(s.id!, { synced: true })));
             }
 
         } catch (error) {

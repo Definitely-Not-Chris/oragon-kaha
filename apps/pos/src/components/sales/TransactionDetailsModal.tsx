@@ -59,7 +59,7 @@ export const TransactionDetailsModal = ({ sale, onClose }: TransactionDetailsMod
                     <div className="bg-gray-50 border-b border-gray-200 p-6 flex justify-between items-center">
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">Transaction Details</h2>
-                            <p className="text-sm text-gray-500 font-mono">{sale.order_number || sale.id}</p>
+                            <p className="text-sm text-gray-500 font-mono">Invoice #{sale.invoice_number || sale.id?.substring(0, 8)}</p>
                         </div>
                         <button
                             onClick={onClose}
@@ -156,7 +156,7 @@ export const TransactionDetailsModal = ({ sale, onClose }: TransactionDetailsMod
 
                             {/* Footer */}
                             <div className="mt-8 text-center text-xs text-gray-400">
-                                <p>Order #: {sale.order_number}</p>
+                                <p>Invoice #: {sale.invoice_number}</p>
                                 <p className="mt-2">Thank you for vibing with us!</p>
                             </div>
 

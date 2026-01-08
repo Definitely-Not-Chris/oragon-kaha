@@ -49,6 +49,11 @@ model Sale {
   discountName   String?
   discountAmount Float?   @default(0)
 
+  // Payment Details
+  amountPaid      Float?
+  changeAmount    Float?
+  referenceNumber String?
+
   // Organization Context
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
@@ -106,6 +111,7 @@ model Organization {
   paymentProofs PaymentProof[]
   sales        Sale[]
   terminals    Terminal[]
+  auditLogs    AuditLog[]
 }
 
 model Discount {
@@ -191,6 +197,9 @@ model WorkShift {
   transactions   CashTransaction[]
 }
 
+  transactions   CashTransaction[]
+}
+
 model CashTransaction {
   id             String       @id @default(uuid())
   shiftId        String
@@ -202,4 +211,18 @@ model CashTransaction {
   timestamp      DateTime     @default(now())
   performedBy    String?
   synced         Boolean      @default(false)
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  action        String
+  details       String?
+  userId        String?
+  userName      String?
+  terminalId    String?
+  timestamp     DateTime @default(now())
+  synced        Boolean  @default(true) 
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 }

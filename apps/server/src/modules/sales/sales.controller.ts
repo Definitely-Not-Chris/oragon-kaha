@@ -11,7 +11,11 @@ export class SalesController {
     }
 
     @Get()
-    findAll(@Query('organization_id') organizationId: string) {
-        return this.salesService.findAll(organizationId);
+    findAll(
+        @Query('organization_id') organizationId: string,
+        @Query('from') from?: string,
+        @Query('to') to?: string
+    ) {
+        return this.salesService.findAll(organizationId, from, to);
     }
 }

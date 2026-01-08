@@ -1,6 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../../db";
-import { Cloud, CloudOff, RefreshCw, AlertTriangle, Trash2 } from "lucide-react";
+import { Cloud, CloudOff, RefreshCw, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { syncEngine, SYNC_API_URL } from "../../lib/SyncEngine";
 
@@ -19,7 +19,7 @@ export const SyncStatus = () => {
     const queueStats = useLiveQuery(async () => {
         try {
             // Safety check: verify table exists
-            if (!db.sync_queue) return { error: true };
+            if (!db.sync_queue) return { pending: 0, processing: 0, failed: 0, total: 0, error: true, lastError: 'Table missing' };
 
             const pending = await db.sync_queue.where('status').equals('PENDING').count();
             const processing = await db.sync_queue.where('status').equals('PROCESSING').count();
@@ -31,7 +31,7 @@ export const SyncStatus = () => {
             return { pending, processing, failed, total: pending + processing + failed, error: false, lastError };
         } catch (err) {
             console.error("SyncQueue Error:", err);
-            return { error: true };
+            return { pending: 0, processing: 0, failed: 0, total: 0, error: true, lastError: null };
         }
     });
 
@@ -60,7 +60,7 @@ export const SyncStatus = () => {
                     setIsOnline(false);
                 }
             } catch (e) {
-                console.log("Heartbeat failed", e);
+                console.error("Heartbeat failed", e);
                 // If ping fails, we are effectively offline for the app's purpose
                 setIsOnline(false);
             }

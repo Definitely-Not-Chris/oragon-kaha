@@ -44,6 +44,9 @@ export const SidebarNav = () => {
 
                 {/* Terminal Identity */}
                 <div className="px-6 mb-6 hidden sm:block">
+                    <p className="text-xs font-bold text-gray-900 truncate mb-1">
+                        {localStorage.getItem('vibepos_org_name') || 'Store Name'}
+                    </p>
                     <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-md inline-block border border-gray-200 uppercase tracking-wider">
                         {localStorage.getItem('vibepos_terminal_name') || 'Unregistered'}
                     </div>
@@ -114,8 +117,8 @@ export const SidebarNav = () => {
                     </div>
 
                     <div className="hidden sm:block flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-700 truncate">{currentUser?.full_name || currentUser?.username}</p>
-                        <p className="text-[10px] text-gray-500 capitalize">{currentUser?.role.replace('_', ' ').toLowerCase()}</p>
+                        <p className="text-xs font-semibold text-gray-700 truncate">{currentUser?.full_name || currentUser?.username || 'User'}</p>
+                        <p className="text-[10px] text-gray-500 capitalize">{currentUser?.role?.replace('_', ' ').toLowerCase()}</p>
                     </div>
 
                     <button

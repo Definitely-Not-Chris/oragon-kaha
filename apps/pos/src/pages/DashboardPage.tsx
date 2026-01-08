@@ -32,13 +32,13 @@ export const DashboardPage = () => {
 
             if (!hasTerminal && hasLicense) {
                 try {
-                    console.log("Terminal ID missing. Attempting auto-registration...");
+
                     const license = await api.licensing.getMyLicense();
                     if (license && license.organizationId) {
                         const terminal = await api.terminals.register(license.organizationId);
                         localStorage.setItem("vibepos_terminal_id", terminal.terminal_id);
                         localStorage.setItem("vibepos_terminal_name", terminal.name);
-                        console.log("Terminal Auto-Registered:", terminal);
+
                     }
                 } catch (e) {
                     console.error("Failed to auto-register terminal", e);

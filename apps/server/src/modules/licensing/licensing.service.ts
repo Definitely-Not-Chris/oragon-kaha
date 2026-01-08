@@ -182,6 +182,7 @@ export class LicensingService {
     async getLicensesByOrgId(orgId: string) {
         return this.prisma.licenseKey.findMany({
             where: { organizationId: orgId },
+            include: { organization: true },
             orderBy: { createdAt: 'desc' }
         });
     }

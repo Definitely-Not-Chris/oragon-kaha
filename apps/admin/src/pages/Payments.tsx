@@ -10,9 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrganizationSelector } from "@/components/OrganizationSelector";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 
 export default function Payments() {
     const [proofs, setProofs] = useState<any[]>([]);
