@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// TODO: Add models here
+
+model Product {
+  id                String   @id @default(uuid())
+  name              String
+  price             Float
+  category          String
+  imageUrl          String?
+  type              String   // RETAIL | SERVICE
+  
+  // Retail specific
+  stockLevel        Int?
+  sku               String?
+  barcode           String?
+  lowStockThreshold Int?     @default(5)
+  
+  // Service specific
+  durationMinutes   Int?
+  assignedStaffId   String?
+
+  movements         StockMovement[]
+  saleItems         SaleItem[]
+  
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+model Sale {
+  id            String   @id @default(uuid())
+  totalAmount   Float
+  paymentMethod String   // CASH | CARD | ONLINE
+  status        String   @default("COMPLETED")
+  timestamp     DateTime @default(now())
+  customerName  String?
+  orderNumber   String?
+  invoiceNumber String?
+  notes         String?
+  
+  // Discount Snapshot
+  discountName   String?
+  discountAmount Float?   @default(0)
+
+  // Organization Context
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // Terminal Context
+  terminalId     String?
+  terminal       Terminal?     @relation(fields: [terminalId], references: [id])
+  
+  items         SaleItem[]
+  
+  @@unique([organizationId, invoiceNumber, terminalId])
+}
+
+model SaleItem {
+  id           String  @id @default(uuid())
+  saleId       String
+  sale         Sale    @relation(fields: [saleId], references: [id])
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  quantity     Int
+  priceAtSale  Float
+  name         String  // Snapshot of name
+}
+
+model StockMovement {
+  id             String   @id @default(uuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id])
+  type           String   // PURCHASE | SALE | ADJUSTMENT | RETURN
+  quantityChange Int
+  reason         String?
+  timestamp      DateTime @default(now())
+  referenceId    String?
+}
+
+model User {
+  id             String        @id @default(uuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  username       String        @unique
+  password       String
+  role           String        @default("CASHIER") // SUPER_ADMIN | ADMIN | CASHIER
+  fullName       String?
+}
+
+model Organization {
+  id           String    @id @default(uuid())
+  name         String
+  contactEmail String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  users        User[]
+  
+  licenseKey   LicenseKey?
+  paymentProofs PaymentProof[]
+  sales        Sale[]
+  terminals    Terminal[]
+}
+
+model Discount {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // PERCENTAGE | FIXED
+  value       Float
+  code        String?  @unique
+  minPurchase Float?
+  isActive    Boolean  @default(true)
+}
+
+// --- Licensing Module ---
+
+model LicenseKey {
+  id             String       @id @default(uuid())
+  key            String       @unique
+  type           String       // PRO | ENTERPRISE
+  status         String       @default("ACTIVE") // ACTIVE | REVOKED | EXPIRED
+  validUntil     DateTime?
+  maxBranches    Int          @default(1)
+  
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+
+model Terminal {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  counter        Int          // Incremental ID (1, 2, 3...)
+  name           String       // "Terminal #1"
+  deviceId       String?      // Hardware fingerprint (optional)
+  lastSeen       DateTime     @default(now())
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  sales          Sale[]
+
+  @@unique([organizationId, counter]) // Ensure unique IDs per org
+}
+
+model PaymentProof {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  referenceNo    String?
+  amount         Float
+  paymentMethod  String       // BANK_TRANSFER | GCASH | PAYMAYA
+  imageUrl       String       // URL to the storage bucket
+  
+  status         String       @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewedBy     String?      // Admin username/ID
+  rejectionReason String?
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model WorkShift {
+  id             String       @id @default(uuid())
+  organizationId String?
+  
+  status         String       @default("OPEN")
+  startTime      DateTime     @default(now())
+  endTime        DateTime?
+  
+  // Money
+  openingFloat   Float
+  expectedCash   Float        @default(0)
+  actualCash     Float?
+  variance       Float?
+  
+  closingNotes   String?
+  synced         Boolean      @default(false)
+  
+  transactions   CashTransaction[]
+}
+
+model CashTransaction {
+  id             String       @id @default(uuid())
+  shiftId        String
+  workShift      WorkShift    @relation(fields: [shiftId], references: [id])
+  
+  type           String       // PAY_IN | PAY_OUT | DROP
+  amount         Float
+  reason         String
+  timestamp      DateTime     @default(now())
+  performedBy    String?
+  synced         Boolean      @default(false)
+}
