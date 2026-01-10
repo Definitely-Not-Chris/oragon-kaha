@@ -5,6 +5,8 @@ applications:
       phases:
         preBuild:
           commands:
+            - npm install -g pnpm
+            - pnpm config set store-dir .pnpm-store
             - pnpm install
         build:
           commands:
@@ -21,6 +23,8 @@ applications:
       phases:
         preBuild:
           commands:
+            - npm install -g pnpm
+            - pnpm config set store-dir .pnpm-store
             - pnpm install
         build:
           commands:
