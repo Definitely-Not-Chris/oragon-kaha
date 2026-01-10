@@ -23,7 +23,8 @@ RUN pnpm install --frozen-lockfile
 WORKDIR /app/packages/database
 # If you have a specific script to generate, run it. 
 # Usually `pnpm db:generate`. Assuming standard prisma generate here.
-RUN pnpm run generate
+# Use local pnpm executable to match package.json version
+RUN pnpm exec prisma generate
 
 # Build the server
 WORKDIR /app/apps/server

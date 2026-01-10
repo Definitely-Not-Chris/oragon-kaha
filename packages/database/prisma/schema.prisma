@@ -197,8 +197,6 @@ model WorkShift {
   transactions   CashTransaction[]
 }
 
-  transactions   CashTransaction[]
-}
 
 model CashTransaction {
   id             String       @id @default(uuid())
