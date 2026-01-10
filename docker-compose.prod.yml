@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # The NestJS API Server
+  api:
+    image: ${DOCKER_IMAGE}:latest
+    container_name: vibepos-api
+    restart: always
+    ports:
+      - "80:3000" # Map host port 80 -> Container port 3000
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - DEPLOY_MODE=CLOUD
+      - NODE_ENV=production
+    depends_on:
+      - db
+
+  # PostgreSQL Database (Local to the VPS)
+  # If you use a managed DB (RDS/Neon), you can remove this service.
+  db:
+    image: postgres:15-alpine
+    container_name: vibepos-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-vibepos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vibepos_password}
+      POSTGRES_DB: ${DB_NAME:-vibepos_db}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
