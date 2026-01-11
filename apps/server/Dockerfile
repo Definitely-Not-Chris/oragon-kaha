@@ -8,7 +8,7 @@ FROM base AS builder
 # Set working directory
 WORKDIR /app
 # Copy root package.json and lockfile
-COPY package.json turbo.json pnpm-lock.yaml ./
+COPY package.json turbo.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copy packages
 COPY packages ./packages
@@ -20,15 +20,17 @@ COPY apps/server ./apps/server
 RUN pnpm install --frozen-lockfile
 
 # Generate Prisma Client (must happen before build)
-WORKDIR /app/packages/database
-# If you have a specific script to generate, run it. 
-# Usually `pnpm db:generate`. Assuming standard prisma generate here.
-# Use local pnpm executable to match package.json version
-RUN pnpm exec prisma generate
+# Generate Prisma Client from root to ensure access to dependencies
+# Generate Prisma Client (using root npx, which now has prisma)
+RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
 
 # Build the server
-WORKDIR /app/apps/server
-RUN pnpm build
+# Build dependencies (shared-types)
+RUN pnpm --filter @vibepos/shared-types build
+
+# Build the server from root
+WORKDIR /app
+RUN pnpm --filter vibepos-server build
 
 # --- Production Image ---
 FROM base AS runner
@@ -36,7 +38,7 @@ WORKDIR /app
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nestjs
+RUN adduser --system --uid 1001 --home /home/nestjs nestjs
 
 # Copy necessary files from builder
 # We need node_modules. Ideally we prune, but for simplicity we copy.
@@ -44,7 +46,7 @@ RUN adduser --system --uid 1001 nestjs
 # We'll copy the built artifacts and the necessary production deps.
 
 # Copy everything for now to robustly handle monorepo symlinks
-COPY --from=builder /app .
+COPY --from=builder --chown=nestjs:nodejs /app .
 
 WORKDIR /app/apps/server
 

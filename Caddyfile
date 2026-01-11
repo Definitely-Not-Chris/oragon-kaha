@@ -1,0 +1,12 @@
+{
+    # Global options
+    email paul.chris.dev@gmail.com
+}
+
+# Replace 'api.yourdomain.com' with your actual domain name
+api.oragon-kaha.shop {
+    # Reverse proxy to the NestJS API service (internal docker name: port)
+    reverse_proxy api:3000
+
+    # automatic HTTPS is on by default
+}

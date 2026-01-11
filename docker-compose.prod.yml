@@ -3,31 +3,52 @@ version: '3.8'
 services:
   # The NestJS API Server
   api:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    platform: linux/amd64
     image: ${DOCKER_IMAGE}:latest
-    container_name: vibepos-api
+    container_name: oragon-kaha-server
     restart: always
-    ports:
-      - "80:3000" # Map host port 80 -> Container port 3000
+    # ports:  <-- REMOVED because Caddy handles the traffic now
+    #   - "3000:3000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${DB_USER:-oragon-kaha}:${DB_PASSWORD:-Password101}@db:5432/${DB_NAME:-oragon-kaha-db}?schema=public
       - JWT_SECRET=${JWT_SECRET}
       - DEPLOY_MODE=CLOUD
       - NODE_ENV=production
     depends_on:
       - db
 
+  # Caddy Reverse Proxy (Handles SSL)
+  caddy:
+    image: caddy:2-alpine
+    container_name: oragon-kaha-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
   # PostgreSQL Database (Local to the VPS)
   # If you use a managed DB (RDS/Neon), you can remove this service.
   db:
     image: postgres:15-alpine
-    container_name: vibepos-db
+    container_name: oragon-kaha-db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-vibepos}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-vibepos_password}
-      POSTGRES_DB: ${DB_NAME:-vibepos_db}
+      POSTGRES_USER: ${DB_USER:-oragon-kaha}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Password101}
+      POSTGRES_DB: ${DB_NAME:-oragon-kaha-db}
     volumes:
       - db_data:/var/lib/postgresql/data
 
 volumes:
   db_data:
+  caddy_data:
+  caddy_config:

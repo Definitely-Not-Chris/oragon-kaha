@@ -72,3 +72,23 @@ Structure: Monorepo (pnpm + Turborepo) with a Feature-Driven NestJS architecture
    - Rationale: Prevents duplication during network retries.
 3. **Validation:** Use Zod schemas to validate all incoming data packets for required fields and logical consistency.
    - Rationale: Ensures data quality at the gate.
+
+## Deployment Protocols (Docker/Lightsail)
+For full details, see `lightsail_deployment_guide.md` and `deployment_troubleshooting.md` in the artifacts directory.
+
+### Quick Deploy Checklist
+1.  **Build (Local Mac):**
+    `docker compose -f docker-compose.prod.yml build --no-cache api`
+2.  **Push:**
+    `docker compose -f docker-compose.prod.yml push api`
+3.  **Deploy (Server):**
+    `docker compose pull && docker compose up -d`
+4.  **Init DB (If Fresh):**
+    `docker compose -f docker-compose.prod.yml run --rm api npx prisma db push --schema=/app/packages/database/prisma/schema.prisma`
+    `docker compose -f docker-compose.prod.yml run --rm api pnpm --filter @vibepos/database prisma db seed`
+
+### Key Troubleshooting
+- **Platform Error:** Use `docker build --platform linux/amd64` if building manually.
+- **DB Connection:** Ensure `DATABASE_URL` uses `@db:5432` internal hostname, not `localhost`.
+- **Prisma Path:** Use absolute path `/app/packages/...` in `run/exec` commands.
+- **Login Fail:** Ensure `bcryptjs` is installed and used for password comparison.
