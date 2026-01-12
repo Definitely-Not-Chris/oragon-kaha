@@ -26,7 +26,9 @@ export default function Login() {
             login(res.access_token, res.user);
             navigate("/");
         } catch (err: any) {
-            setError(err.message || "Invalid credentials");
+            // Check for Axios/API error structure
+            const message = err.response?.data?.message || err.message || "Invalid credentials";
+            setError(message);
         } finally {
             setLoading(false);
         }

@@ -104,7 +104,9 @@ export default function ActivationPage() {
 
         } catch (err: any) {
             console.error(err);
-            setError(err.message || "Login failed");
+            // Check for Axios/API error structure
+            const message = err.response?.data?.message || err.message || "Login failed";
+            setError(message);
             localStorage.removeItem("vibepos_pos_token"); // Cleanup
             setLoading(false);
         }

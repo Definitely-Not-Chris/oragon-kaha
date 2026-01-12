@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  # The NestJS API Server (Dev/Local)
+  api:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: vibepos-server-dev
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://vibepos:vibepos_password@postgres:5432/vibepos_db?schema=public
+      - JWT_SECRET=DEV_SECRET_KEY
+      - DEPLOY_MODE=CLOUD
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+      - redis
+
   postgres:
     image: postgres:15-alpine
     restart: always

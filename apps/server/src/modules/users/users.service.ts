@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { User, UserSchema } from '@vibepos/shared-types';
 
+import * as bcrypt from 'bcryptjs';
+
 @Injectable()
 export class UsersService {
     constructor(private prisma: PrismaService) { }
@@ -14,10 +16,12 @@ export class UsersService {
         const existing = await this.prisma.user.findUnique({ where: { username: data.username } });
         if (existing) throw new BadRequestException('Username already taken');
 
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+
         return this.prisma.user.create({
             data: {
                 username: data.username,
-                password: data.password, // TODO: Hash this!
+                password: hashedPassword,
                 fullName: data.full_name,
                 role: data.role,
                 organizationId: data.organization_id || null
@@ -51,15 +55,19 @@ export class UsersService {
     async update(id: string, data: Partial<User>) {
         const user = await this.findOne(id);
 
+        let updateData: any = {
+            fullName: data.full_name,
+            role: data.role,
+            organizationId: data.organization_id,
+        };
+
+        if (data.password) {
+            updateData.password = await bcrypt.hash(data.password, 10);
+        }
+
         return this.prisma.user.update({
             where: { id },
-            data: {
-                fullName: data.full_name,
-                role: data.role,
-                organizationId: data.organization_id,
-                // Only update password if provided
-                ...(data.password ? { password: data.password } : {})
-            }
+            data: updateData
         });
     }
 
